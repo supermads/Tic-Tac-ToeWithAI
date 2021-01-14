@@ -30,47 +30,81 @@ class GameTable:
         else:
             return None
 
-    def play(self):
+    def computer_move(self, char_choice):
+        a, b = self.open_spaces.pop(randrange(len(self.open_spaces)))
+        if char_choice == 'X':
+            self.table[a][b] = 'X'
+            self.x_count += 1
+        else:
+            self.table[a][b] = 'O'
+            self.o_count += 1
+        print('Making move level "easy"')
         self.print_table()
+
+    def user_move(self, char_choice):
+        coord = input("Enter the coordinates: ")
+        if len(coord.split()) == 2:
+            a, b = coord.split()
+            if a.isnumeric() and b.isnumeric():
+                # Indexes are 0-2, coordinates are 1-3
+                a = int(a) - 1
+                b = int(b) - 1
+                if not (0 <= a <= 2 and 0 <= b <= 2):
+                    print('Coordinates should be from 1 to 3!')
+                elif self.table[a][b] != ' ':
+                    print('This cell is occupied! Choose another one!')
+                else:
+                    if char_choice == 'X':
+                        self.table[a][b] = 'X'
+                        self.x_count += 1
+                    else:
+                        self.table[a][b] = 'O'
+                        self.o_count += 1
+                    space_taken = [a, b]
+                    self.open_spaces.pop(self.open_spaces.index(space_taken))
+                    self.print_table()
+            else:
+                print('You should enter numbers!')
+        else:
+            print('You should enter numbers!')
+
+    def play(self, player_1, player_2):
         winner = ''
         while self.x_count + self.o_count < 9 and not winner:
             if self.x_count == self.o_count:
-                coord = input("Enter the coordinates: ")
-                if len(coord.split()) == 2:
-                    a, b = coord.split()
-                    if a.isnumeric() and b.isnumeric():
-                        # Indexes are 0-2, coordinates are 1-3
-                        a = int(a) - 1
-                        b = int(b) - 1
-                        if not (0 <= a <= 2 and 0 <= b <= 2):
-                            print('Coordinates should be from 1 to 3!')
-                        elif self.table[a][b] != ' ':
-                            print('This cell is occupied! Choose another one!')
-                        else:
-                            self.table[a][b] = 'X'
-                            self.x_count += 1
-                            space_taken = [a, b]
-                            self.open_spaces.pop(self.open_spaces.index(space_taken))
-                            self.print_table()
-                    else:
-                        print('You should enter numbers!')
-                else:
-                    print('You should enter numbers!')
+                if player_1 == 'easy':
+                    self.computer_move('X')
+                elif player_1 == 'user':
+                    self.user_move('X')
             else:
-                # Assign a random open space to O
-                a, b = self.open_spaces.pop(randrange(len(self.open_spaces)))
-                self.table[a][b] = 'O'
-                self.o_count += 1
-                print('Making move level "easy"')
-                self.print_table()
+                if player_2 == 'easy':
+                    self.computer_move('O')
+                elif player_2 == 'user':
+                    self.user_move('O')
             winner = self.find_winner()
         if not winner:
             print("Draw")
 
 
 def main():
-    table = GameTable()
-    table.play()
+    command = input('Input command: ')
+    while command != 'exit':
+        # Ready to play when start, player_1, and player_2 received from user
+        ready = False
+        while not ready:
+            if command == 'exit':
+                return
+            command = command.split()
+            if len(command) < 3 or command[0] != 'start':
+                print('Bad parameters!')
+                command = input('Input command: ')
+            else:
+                player_1 = command[1]
+                player_2 = command[2]
+                ready = True
+        table = GameTable()
+        table.play(player_1, player_2)
+        command = input('\nInput command: ')
 
 
 main()
