@@ -1,12 +1,35 @@
 from random import randrange
 
 
+class Point:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+
+class WinCondition:
+    def __init__(self, p1, p2, p3):
+        self.p1 = p1
+        self.p2 = p2
+        self.p3 = p3
+
+
 class GameTable:
     def __init__(self):
         self.table = [[' ' for _i in range(3)] for _j in range(3)]
         self.x_count = 0
         self.o_count = 0
         self.open_spaces = [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]]
+        self.win_conditions = [WinCondition(Point(0, 0), Point(0, 1), Point(0, 2)), WinCondition(Point(1, 0), Point(1, 1), Point(1, 2)),
+            WinCondition(Point(2, 0), Point(2, 1), Point(2, 2)), WinCondition(Point(0, 0), Point(1, 1), Point(2, 2)),
+            WinCondition(Point(0, 2), Point(1, 1), Point(2, 0)), WinCondition(Point(0, 0), Point(1, 0), Point(2, 0)),
+            WinCondition(Point(0, 1), Point(1, 1), Point(2, 1)), WinCondition(Point(0, 2), Point(1, 2), Point(2, 2))]
+
+    def get_spaces_for_win_condition(self, condition):
+        space1 = self.table[condition.p1.a][condition.p1.b]
+        space2 = self.table[condition.p2.a][condition.p2.b]
+        space3 = self.table[condition.p3.a][condition.p3.b]
+        return [space1, space2, space3]
 
     def print_table(self):
         print('-' * 9)
@@ -17,20 +40,15 @@ class GameTable:
 
     def find_winner(self):
         winner = ''
-        win_conditions = [[self.table[0][0], self.table[0][1], self.table[0][2]], [self.table[1][0], self.table[1][1], self.table[1][2]],
-                        [self.table[2][0], self.table[2][1], self.table[2][2]], [self.table[0][0], self.table[1][1], self.table[2][2]],
-                        [self.table[0][2], self.table[1][1], self.table[2][0]], [self.table[0][0], self.table[1][0], self.table[2][0]],
-                        [self.table[0][1], self.table[1][1], self.table[2][1]], [self.table[0][2], self.table[1][2], self.table[2][2]]]
-        for condition in win_conditions:
-            if condition[0] != ' ' and condition[0] == condition[1] == condition[2]:
-                winner = condition[0]
-        if winner:
-            print('{} wins'.format(winner))
-            return winner
-        else:
-            return None
+        for condition in self.win_conditions:
+            space1, space2, space3 = self.get_spaces_for_win_condition(condition)
+            if space1 != ' ' and space1 == space2 == space3:
+                winner = space1
+                print('{} wins'.format(winner))
+                return winner
+        return None
 
-    def computer_move(self, char_choice):
+    def easy_move(self, char_choice, level='easy'):
         a, b = self.open_spaces.pop(randrange(len(self.open_spaces)))
         if char_choice == 'X':
             self.table[a][b] = 'X'
@@ -38,8 +56,33 @@ class GameTable:
         else:
             self.table[a][b] = 'O'
             self.o_count += 1
-        print('Making move level "easy"')
+        print('Making move level "{}"'.format(level))
         self.print_table()
+
+    def medium_move(self, char_choice):
+        move_made = False
+        for condition in self.win_conditions:
+            if not move_made:
+                space1, space2, space3 = self.get_spaces_for_win_condition(condition)
+                # If a win can be made in one move (by player or opponent), make that move
+                if space1 != ' ' and space1 == space2 and space3 == ' ':
+                    self.table[condition.p3.a][condition.p3.b] = char_choice
+                    move_made = True
+                elif space1 != ' ' and space1 == space3 and space2 == ' ':
+                    self.table[condition.p2.a][condition.p2.b] = char_choice
+                    move_made = True
+                elif space2 != ' ' and space2 == space3 and space1 == ' ':
+                    self.table[condition.p1.a][condition.p1.b] = char_choice
+                    move_made = True
+        if move_made:
+            print('Making move level "medium"')
+            self.print_table()
+            if char_choice == 'X':
+                self.x_count += 1
+            else:
+                self.o_count += 1
+        else:
+            self.easy_move(char_choice, 'medium')
 
     def user_move(self, char_choice):
         coord = input("Enter the coordinates: ")
@@ -73,12 +116,16 @@ class GameTable:
         while self.x_count + self.o_count < 9 and not winner:
             if self.x_count == self.o_count:
                 if player_1 == 'easy':
-                    self.computer_move('X')
+                    self.easy_move('X')
+                elif player_1 == 'medium':
+                    self.medium_move('X')
                 elif player_1 == 'user':
                     self.user_move('X')
             else:
                 if player_2 == 'easy':
-                    self.computer_move('O')
+                    self.easy_move('O')
+                elif player_2 == 'medium':
+                    self.medium_move('O')
                 elif player_2 == 'user':
                     self.user_move('O')
             winner = self.find_winner()
