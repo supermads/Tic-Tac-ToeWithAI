@@ -112,7 +112,7 @@ files:
 
             for line in lines:
                 if len(line) != 9:
-                    raise WrongAnswerException(
+                    raise WrongAnswer(
                         f"Line of Tic-Tac-Toe field should be 9 characters long\n"
                         f"found {len(line)} characters in \"{line}\"")
                 for c in line:
@@ -361,6 +361,13 @@ files:
     if __name__ == '__main__':
         TicTacToeTest('tictactoe.tictactoe').run_tests()
   learner_created: false
+- name: tictactoe/__init__.py
+  visible: true
+  learner_created: true
 feedback_link: https://hyperskill.org/projects/82/stages/456/implement#comment
-status: Unchecked
+status: Solved
+feedback:
+  message: Congratulations! Continue on <a href="https://hyperskill.org/projects/82/stages/456/implement">JetBrains
+    Academy</a>
+  time: Fri, 29 Jan 2021 21:02:47 UTC
 record: -1

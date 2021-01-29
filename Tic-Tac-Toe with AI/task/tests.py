@@ -5,6 +5,9 @@ from enum import Enum
 from hstest.stage_test import *
 from hstest.test_case import TestCase
 
+CheckResult.correct = lambda: CheckResult(True, '')
+CheckResult.wrong = lambda feedback: CheckResult(False, feedback)
+
 
 class FieldState(Enum):
     X = 'X'
@@ -46,9 +49,11 @@ class TicTacToeField:
                 [None for _ in range(3)] for _ in range(3)
             ]
 
+            field = field.replace("\"", "")
+
             for row in range(3):
                 for col in range(3):
-                    index = (row) * 3 + col
+                    index = (2 - row) * 3 + col
                     self.field[row][col] = get_state(field[index])
 
     def equal_to(self, other) -> bool:
@@ -96,7 +101,7 @@ class TicTacToeField:
 
         for line in lines:
             if len(line) != 9:
-                raise WrongAnswerException(
+                raise WrongAnswer(
                     f"Line of Tic-Tac-Toe field should be 9 characters long\n"
                     f"found {len(line)} characters in \"{line}\"")
             for c in line:
@@ -119,8 +124,6 @@ class TicTacToeField:
                 field[y][x] = state
                 x += 1
             y += 1
-
-        y = 0
 
         return TicTacToeField(constructed=field)
 
@@ -176,22 +179,28 @@ def iterate_cells(initial: str) -> str:
 
 class TicTacToeTest(StageTest):
     win = 0
+    draw = 0
     turn = 0
     manual_test_turns = [None, [0, 0], [1, 2], [1, 0], [2, 2], [2, 0]]
 
     def generate(self) -> List[TestCase]:
         return [TestCase(stdin=(["start easy easy", "2 2"] + [self.test for _ in range(50)] + ["exit"]),
                          check_function=self.check_1) for _ in range(50)] + \
-               [TestCase(stdin=["exit"],
-                         check_function=self.final_check)] + \
+               [TestCase(stdin="exit", check_function=self.final_check_easy)] + \
                [TestCase(stdin="start easy easy\nexit", check_function=self.auto_test_check),
                 TestCase(stdin=["start user user", self.manual_test_1, self.manual_test_1, self.manual_test_1,
                                 self.manual_test_1, self.manual_test_1, self.manual_test_1_check]),
                 TestCase(stdin=["start user user", "1 1", self.manual_test_2_1, self.manual_test_2_2,
-                                self.manual_test_2_3])]
-
-    def check(self, reply, attach):
-        return CheckResult.wrong('You finished the program too early, input request was expected')
+                                self.manual_test_2_3])] + \
+               [TestCase(stdin=["start medium medium", "2 2"] + [self.test for _ in range(50)] + ["exit"],
+                         check_function=self.check_1) for _ in range(50)] + \
+               [TestCase(stdin="exit", check_function=self.final_check_medium)] + \
+               [TestCase(stdin=["start hard hard", "2 2"] + [self.test for _ in range(50)] + ["exit"],
+                         check_function=self.check_1) for _ in range(50)] + \
+               [TestCase(stdin="exit", check_function=self.final_check_hard)] + \
+               [TestCase(stdin=["start hard medium", "2 2"] + [self.test for _ in range(50)] + ["exit"],
+                         check_function=self.check_1) for _ in range(50)] + \
+               [TestCase(stdin="exit", check_function=self.final_check_hard_vs_medium)]
 
     # checking overlapping ###################################################
     def manual_test_2_1(self, output):
@@ -227,11 +236,10 @@ class TicTacToeTest(StageTest):
         fields: List[TicTacToeField] = TicTacToeField.parse_all(output)
 
         if len(fields) != 1:
-            return CheckResult.wrong(
-                f"There should be a single grid in the output, "
-                f"found {len(fields)} grids")
+            raise WrongAnswer("Cannot parse output. "
+                              f"Expected 1 grid to be printed, found {len(fields)}")
 
-        field: TicTacToeField = fields[0]
+        field = fields[0]
 
         a, b = self.manual_test_turns[self.turn]
         if self.turn % 2 == 1:
@@ -256,6 +264,9 @@ class TicTacToeTest(StageTest):
             return CheckResult.wrong("A win message was expected, but the game didn't stop.")
         return CheckResult.correct()
 
+    def check(self, reply, attach):
+        return CheckResult.wrong('You finished the program too early, input request was expected')
+
     ##########################################################################
 
     # input util the finish
@@ -263,20 +274,56 @@ class TicTacToeTest(StageTest):
         index = random.randint(0, len(inputs) - 1)
         return inputs[index]
 
-    # winnings counter
+    # winnings counters
+    # easy
     def check_1(self, reply: str, attach):
         if "x wins" in reply.lower():
             self.win += 1
+        elif "draw" in reply.lower():
+            self.draw += 1
         return CheckResult.correct()
 
     # check the percentage of winnings
-    def final_check(self, reply, attach):
+    def final_check_easy(self, reply, attach):
         if self.win > 13:
+            self.win = 0
+            self.draw = 0
+            self.turn = 0
             return CheckResult.correct()
         else:
-            return CheckResult.wrong("The difficulty of your AI is too high. " +
+            return CheckResult.wrong("The difficulty of your easy AI is too high. " +
                                      "Make it easier.\n"
                                      "If you are sure the AI difficulty is fine, try to rerun the test.")
+
+    def final_check_medium(self, reply, attach):
+        if self.win > 10:
+            self.win = 0
+            self.draw = 0
+            self.turn = 0
+            return CheckResult.correct()
+        else:
+            return CheckResult.wrong("The difficulty of your medium AI is too high. " +
+                                     "Make it easier.\n"
+                                     "If you are sure the AI difficulty is fine, try to rerun the test.")
+
+    def final_check_hard(self, reply, attach):
+        if self.draw > 40:
+            self.win = 0
+            self.draw = 0
+            self.turn = 0
+            return CheckResult.correct()
+        else:
+            return CheckResult.wrong("The difficulty of your hard AI is too high." +
+                                     "Make it easier.")
+
+    def final_check_hard_vs_medium(self, reply, attach):
+        if self.win > 12:
+            self.win = 0
+            self.draw = 0
+            self.turn = 0
+            return CheckResult.correct()
+        else:
+            return CheckResult.wrong("The difficulty of your hard AI is too low.")
 
     # checking if the game works correctly in ai vs ai mode
     def auto_test_check(self, reply: str, attach):
